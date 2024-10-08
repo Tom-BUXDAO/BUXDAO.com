@@ -1,0 +1,29 @@
+import { serve } from 'https://deno.land/std@0.131.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+serve(async (req) => {
+  const { user_id, game_type, won, score } = await req.json()
+
+  const { data, error } = await supabase.rpc('update_game_stats', {
+    p_user_id: user_id,
+    p_game_type: game_type,
+    p_won: won,
+    p_score: score
+  })
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 400,
+    })
+  }
+
+  return new Response(JSON.stringify(data), {
+    headers: { 'Content-Type': 'application/json' },
+    status: 200,
+  })
+})
