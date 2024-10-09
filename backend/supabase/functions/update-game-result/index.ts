@@ -1,5 +1,5 @@
-import { serve } from "http/server";
-import { createClient } from 'supabase';
+import { serve } from "https://deno.land/std@0.181.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0';
 import { 
   handleOptions, 
   createErrorResponse, 
@@ -19,7 +19,6 @@ interface GameResult {
 }
 
 async function handler(req: Request): Promise<Response> {
-  // Handle CORS
   const optionsResponse = handleOptions(req);
   if (optionsResponse) return optionsResponse;
 
@@ -28,22 +27,20 @@ async function handler(req: Request): Promise<Response> {
   }
 
   try {
-    // Rate limiting
     const rateLimitResponse = await handleRateLimit(req, 10, 60000); // 10 requests per minute
     if (rateLimitResponse) return rateLimitResponse;
 
     const body = await req.json();
     const gameResult = validateGameResult(body);
 
-    // Update user stats
-    const { data, error } = await supabase.rpc('update_user_stats', gameResult);
+    const { data: _data, error } = await supabase.rpc('update_user_stats', gameResult);
 
     if (error) throw error;
 
     return createSuccessResponse({ message: 'Game result updated successfully' });
-  } catch (error: any) {
-    console.error('Update game result error:', error);
-    return createErrorResponse(error.message || 'An unexpected error occurred', error.status || 500);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return createErrorResponse(errorMessage, 500);
   }
 }
 

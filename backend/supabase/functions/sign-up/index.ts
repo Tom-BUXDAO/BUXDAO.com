@@ -1,15 +1,12 @@
-// Type declarations to avoid import issues
-declare function serve(handler: (req: Request) => Promise<Response>): void;
-declare function createClient(url: string, key: string): any;
-
+import { createClient, SupabaseClient as _SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0';
 import { 
-  corsHeaders, 
   handleOptions, 
   createErrorResponse, 
   createSuccessResponse, 
   isValidEmail,
-  handleRateLimit  // Add this import
-} from '../utils.ts';
+  handleRateLimit
+} from '../utils/index.ts';
+import { serve } from "https://deno.land/std@0.181.0/http/server.ts";
 
 // Type declaration for Deno.env to avoid the "Cannot find name 'Deno'" error
 declare namespace Deno {
@@ -69,7 +66,7 @@ serve(async (req: Request): Promise<Response> => {
     const { email, password, username } = validateSignUpRequest(body);
 
     // Check if username already exists
-    const { data: existingUser, error: userError } = await supabase
+    const { data: existingUser } = await supabase
       .from('profiles')
       .select('username')
       .eq('username', username)
@@ -97,8 +94,19 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     return createSuccessResponse({ message: 'User created successfully' }, 201);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Sign-up error:', error);
-    return createErrorResponse(error.message || 'An unexpected error occurred', error.status || 500);
+    if (error instanceof HttpError) {
+      return createErrorResponse(error.message, error.status);
+    }
+    return createErrorResponse('An unexpected error occurred', 500);
   }
 });
+
+class HttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}

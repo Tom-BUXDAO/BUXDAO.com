@@ -1,42 +1,37 @@
-// Type declarations to avoid import issues
-declare function serve(handler: (req: Request) => Promise<Response>): void;
-declare function createClient(url: string, key: string): any;
+import { createClient } from "../deps.ts"; // Adjust the path as necessary
 
-// Import local utilities
-import { corsHeaders, handleOptions, createErrorResponse, createSuccessResponse } from '../utils.ts'
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-// Type declaration for Deno.env to avoid the "Cannot find name 'Deno'" error
-declare namespace Deno {
-  namespace env {
-    function get(key: string): string | undefined;
-  }
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase URL or key');
 }
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-serve(async (req: Request): Promise<Response> => {
+export const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
-    return handleOptions(req) || new Response(null, { status: 204 });
+    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*' } });
   }
 
   try {
-    const { email, password } = await req.json()
+    const { email, password } = await req.json();
 
     if (!email || !password) {
-      return createErrorResponse("Email and password are required", 400)
+      return new Response(JSON.stringify({ error: 'Email and password are required' }), { status: 400 });
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    })
+    });
 
-    if (error) throw error
+    if (error) throw error;
 
-    return createSuccessResponse({ user: data.user, session: data.session })
+    return new Response(JSON.stringify({ user: data.user, session: data.session }), { status: 200 });
   } catch (error) {
-    return createErrorResponse(error.message, 400)
+    // Type assertion to access the message property
+    const errorMessage = (error instanceof Error) ? error.message : 'An unexpected error occurred';
+    return new Response(JSON.stringify({ error: errorMessage }), { status: 400 });
   }
-})
+};

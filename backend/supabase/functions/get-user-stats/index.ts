@@ -1,6 +1,7 @@
+import { createClient, SupabaseClient as _SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0';
+
 // Type declarations to avoid import issues
 declare function serve(handler: (req: Request) => Promise<Response>): void;
-declare function createClient(url: string, key: string): any;
 
 // Type declaration for Deno.env to avoid the "Cannot find name 'Deno'" error
 declare namespace Deno {
@@ -39,7 +40,13 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    if (error instanceof Error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        headers: { "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred' }), {
       headers: { "Content-Type": "application/json" },
       status: 400,
     });
