@@ -1,8 +1,15 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// We'll use a type declaration for createClient to avoid import issues
+declare function createClient(url: string, key: string): any;
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+// We'll use a type declaration for Deno.env to avoid the "Cannot find name 'Deno'" error
+declare namespace Deno {
+  namespace env {
+    function get(key: string): string | undefined;
+  }
+}
 
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function authenticateUser(req: Request): Promise<string | null> {
